@@ -1,6 +1,5 @@
 #pragma once
 #include <iostream>
-#include <map>
 #include <string>
 #include "Data.h"
 
@@ -33,9 +32,14 @@ Data::Data() {
 
 Data::~Data() {
 	if (DataStructure.empty()) return;
-	for (auto g : DataStructure)
-		RemoveGroup(g.first);
-	DataStructure.clear();
+	for (auto g : DataStructure) {
+		for (auto sg : *g.second) {
+			for (auto item : *sg.second)
+				delete item;
+			delete sg.second;
+		}
+		delete g.second;
+	}
 }
 
 void Data::PrintAll() {
@@ -210,7 +214,12 @@ map<int, list<Item*>*>* Data::InsertGroup(char c, initializer_list<int> subgroup
 	auto m = new map<int, list<Item*>*>;
 	DataStructure[c] = m;
 
-	//TODO
+	initializer_list<int>::iterator i;
+	initializer_list<initializer_list<Item*>>::iterator l;
+	for (i = subgroups.begin(), l = items.begin(); i != subgroups.end() && l != items.end(); ++i, ++l) {
+		auto ll = new list<Item*>{ *l };
+		(*m)[*i] = ll;
+	}
 	return m;
 }
 
@@ -223,7 +232,7 @@ bool Data::RemoveItem(char c, int i, string s) {
 			if ((*DataStructure[c]).empty())
 				DataStructure.erase(c);
 		}
-		toRemove->~Item();
+		delete toRemove;
 		return true;
 	}
 	return false;
@@ -232,7 +241,7 @@ bool Data::RemoveItem(char c, int i, string s) {
 bool Data::RemoveSubgroup(char c, int i) {
 	if (DataStructure.count(c) == 0 || (*DataStructure[c]).count(i) == 0) return false;
 	for (auto item : *(*DataStructure[c])[i])
-		item->~Item();
+		delete item;
 	(*DataStructure[c]).erase(i);
 	if ((*DataStructure[c]).empty())
 		DataStructure.erase(c);
@@ -241,9 +250,10 @@ bool Data::RemoveSubgroup(char c, int i) {
 
 bool Data::RemoveGroup(char c) {
 	if (DataStructure.count(c) == 0) return false;
-	for (auto subgroup : *DataStructure[c])
-		for (auto item : *subgroup.second)
-			item->~Item();
+	cout << "Removing " << c << endl;
+	for (auto sg : *DataStructure[c])
+		for (auto item : *sg.second)
+			delete item;
 	DataStructure.erase(c);
 	return true;
 }

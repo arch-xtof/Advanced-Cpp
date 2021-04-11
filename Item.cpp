@@ -48,9 +48,7 @@ Item::Item(const Item& original) {
 	Timestamp = original.Timestamp;
 }
 
-Item::~Item() {
-	Timestamp.~Date();
-}
+Item::~Item() {}
 
 char Item::getGroup() {
 	return Group;
