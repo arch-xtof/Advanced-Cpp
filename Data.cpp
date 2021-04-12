@@ -46,13 +46,15 @@ void Data::PrintAll() {
 	for (const auto& g : DataStructure) {
 		cout << g.first << ":\n";
 		for (const auto& sg : *g.second) {
-			sg.second->sort([](Item* i1, Item* i2) {
-				for (int n = 0;; n++) {
-					if (i1->getName()[n] < i2->getName()[n]) return true;
-					else if (i1->getName()[n] == i2->getName()[n]) continue;
-					else return false;
-				}
-				});
+			if (sg.second->size() > 1) {
+				sg.second->sort([](Item* i1, Item* i2) {
+					for (int n = 0;; n++) {
+						if (i1->getName()[n] < i2->getName()[n]) return true;
+						else if (i1->getName()[n] == i2->getName()[n]) continue;
+						else return false;
+					}
+					});
+			}
 			for (const auto& l : *sg.second)
 				cout << sg.first << ": " << l->getName() << " " << l->getTimestamp().ToString() << endl;
 		}
@@ -78,13 +80,15 @@ void Data::PrintGroup(char c) {
 	try {
 		if (DataStructure.count(c) == 0) throw invalid_argument("Group does not exist");
 		for (const auto& sg : *DataStructure[c]) {
-			sg.second->sort([](Item* i1, Item* i2) {
-				for (int n = 0;; n++) {
-					if (i1->getName()[n] < i2->getName()[n]) return true;
-					else if (i1->getName()[n] == i2->getName()[n]) continue;
-					else return false;
-				}
-				});
+			if (sg.second->size() > 1) {
+				sg.second->sort([](Item* i1, Item* i2) {
+					for (int n = 0;; n++) {
+						if (i1->getName()[n] < i2->getName()[n]) return true;
+						else if (i1->getName()[n] == i2->getName()[n]) continue;
+						else return false;
+					}
+					});
+			}
 			for (const auto& l : *sg.second)
 				cout << sg.first << ": " << l->getName() << " " << l->getTimestamp().ToString() << endl;
 		}
@@ -113,13 +117,15 @@ void Data::PrintSubgroupByNames(char c, int i) {
 	try {
 		if (DataStructure.count(c) == 0) throw invalid_argument("Group does not exist");
 		if ((*DataStructure[c]).count(i) == 0) throw invalid_argument("Subgroup does not exist");
-		(*DataStructure[c])[i]->sort([](Item* i1, Item* i2) {
-			for (int n = 0;; n++) {
-				if (i1->getName()[n] < i2->getName()[n]) return true;
-				else if (i1->getName()[n] == i2->getName()[n]) continue;
-				else return false;
-			}
-			});
+		if((*DataStructure[c])[i]->size() > 1){
+			(*DataStructure[c])[i]->sort([](Item* i1, Item* i2) {
+				for (int n = 0;; n++) {
+					if (i1->getName()[n] < i2->getName()[n]) return true;
+					else if (i1->getName()[n] == i2->getName()[n]) continue;
+					else return false;
+				}
+				});
+		}
 		for (const auto& l : *(*DataStructure[c])[i])
 			cout << l->getName() << " " << l->getTimestamp().ToString() << endl;
 	}
@@ -132,9 +138,11 @@ void Data::PrintSubgroupByDates(char c, int i) {
 	try {
 		if (DataStructure.count(c) == 0) throw invalid_argument("Group does not exist");
 		if ((*DataStructure[c]).count(i) == 0) throw invalid_argument("Subgroup does not exist");
-		(*DataStructure[c])[i]->sort([](Item* i1, Item* i2) {
-			return i1->getTimestamp().operator<(i2->getTimestamp());
-			});
+		if ((*DataStructure[c])[i]->size() > 1) {
+			(*DataStructure[c])[i]->sort([](Item* i1, Item* i2) {
+				return i1->getTimestamp().operator<(i2->getTimestamp());
+				});
+		}
 		for (const auto& l : *(*DataStructure[c])[i])
 			cout << l->getName() << " " << l->getTimestamp().ToString() << endl;
 	}
@@ -163,9 +171,12 @@ void Data::PrintItem(char c, int i, string s) {
 	try {
 		if (DataStructure.count(c) == 0 || (*DataStructure[c]).count(i) == 0) throw invalid_argument("Item does not exist");
 		for (Item* item : *(*DataStructure[c])[i]) {
-			if (!item->getName().compare(s))
+			if (!item->getName().compare(s)) {
 				cout << item->getGroup() << " " << item->getSubgroup() << " " << item->getName() << " " << item->getTimestamp().ToString() << endl;
+				return;
+			}
 		}
+		throw invalid_argument("Item does not exist");
 	}
 	catch (const invalid_argument& e) { 
 		cout << e.what() << endl;
@@ -178,6 +189,9 @@ Item* Data::InsertItem(char c, int i, string s, Date d) {
 	Item* temp = new Item(c, i, s, d);
 	if (DataStructure.count(c) > 0) {
 		if ((*DataStructure[c]).count(i) > 0) {
+			for (Item* item : *(*DataStructure[c])[i]) {
+				if (!item->getName().compare(s)) return nullptr;
+			}
 			(*DataStructure[c])[i]->push_back(temp);
 		}
 		else {
@@ -250,7 +264,6 @@ bool Data::RemoveSubgroup(char c, int i) {
 
 bool Data::RemoveGroup(char c) {
 	if (DataStructure.count(c) == 0) return false;
-	cout << "Removing " << c << endl;
 	for (auto sg : *DataStructure[c])
 		for (auto item : *sg.second)
 			delete item;
